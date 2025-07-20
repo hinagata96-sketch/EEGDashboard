@@ -33,22 +33,5 @@ def extract_cwt_features(
         for ch_idx, ch_name in enumerate(ch_names):
             signal = seg_data[ch_idx]
             # pywt removed: CWT feature extraction is disabled due to lack of pywt support on Python 3.13
-            continue
-                total_energy = np.sum(band_coefs ** 2)
-                total_entropy = entropy(band_coefs / (np.sum(band_coefs) + 1e-12))
-                coef_mean = np.mean(band_coefs)
-                coef_std = np.std(band_coefs)
-                coef_kurtosis = kurtosis(band_coefs)
-                coef_skewness = skew(band_coefs)
-                all_cwt_features.append({
-                    "segment": seg_idx + 1,
-                    "channel": ch_name,
-                    "band": band,
-                    "energy": total_energy,
-                    "entropy": total_entropy,
-                    "mean": coef_mean,
-                    "std": coef_std,
-                    "skewness": coef_skewness,
-                    "kurtosis": coef_kurtosis
-                })
+            pass  # Feature extraction for CWT is currently disabled
     return all_cwt_features
