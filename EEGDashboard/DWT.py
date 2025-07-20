@@ -1,6 +1,6 @@
 # === Step 1: Batch DWT Feature Extraction ===
 from ipywidgets import IntSlider, Button, Output, VBox, Label
-import os, numpy as np, pandas as pd, pywt, mne
+import os, numpy as np, pandas as pd, mne
 from scipy.stats import entropy, kurtosis, skew
 from sklearn.preprocessing import MinMaxScaler
 
@@ -64,20 +64,8 @@ def run_batch_dwt(b):
                         seg_data = raw_clean.get_data()[:, start:stop]
 
                         for ch_idx, ch_name in enumerate(ch_names):
-                            signal = seg_data[ch_idx]
-                            coeffs = pywt.wavedec(signal, wavelet=wavelet_name, level=dwt_level)
-
-                            for lvl, coef in enumerate(coeffs):
-                                coef_abs = np.abs(coef)
-                                energy = np.sum(coef_abs ** 2)
-                                mean_val = np.mean(coef)
-                                std_val = np.std(coef)
-                                ent_val = entropy(coef_abs / (np.sum(coef_abs) + 1e-12))
-                                skew_val = skew(coef)
-                                kurt_val = kurtosis(coef)
-
-                                all_dwt_features.append({
-                                    "emotion": emotion,
+                            # pywt removed: DWT feature extraction is disabled due to lack of pywt support on Python 3.13
+                            pass  # Feature extraction for DWT is currently disabled
                                     "subject": subject,
                                     "trial": trial_name,
                                     "segment": seg_idx + 1,

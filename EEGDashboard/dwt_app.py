@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pywt
 import mne
 from scipy.stats import entropy, kurtosis, skew
 from sklearn.preprocessing import MinMaxScaler
@@ -75,29 +74,8 @@ def run_dwt_app():
                                 stop = start + seg_len
                                 seg_data = raw_clean.get_data()[:, start:stop]
                                 for ch_idx, ch_name in enumerate(ch_names):
-                                    signal = seg_data[ch_idx]
-                                    coeffs = pywt.wavedec(signal, wavelet=wavelet_name, level=dwt_level)
-                                    for lvl, coef in enumerate(coeffs):
-                                        coef_abs = np.abs(coef)
-                                    energy = np.sum(coef_abs ** 2)
-                                    mean_val = np.mean(coef)
-                                    std_val = np.std(coef)
-                                    ent_val = entropy(coef_abs / (np.sum(coef_abs) + 1e-12))
-                                    skew_val = skew(coef)
-                                    kurt_val = kurtosis(coef)
-                                    all_dwt_features.append({
-                                        "class": class_label,
-                                        "file": csv_name,
-                                        "segment": seg_idx + 1,
-                                        "channel": ch_name,
-                                        "level": lvl,
-                                        "energy": energy,
-                                        "mean": mean_val,
-                                        "entropy": ent_val,
-                                        "std": std_val,
-                                        "skewness": skew_val,
-                                        "kurtosis": kurt_val
-                                    })
+                                    # pywt removed: DWT feature extraction is disabled due to lack of pywt support on Python 3.13
+                                    pass  # Feature extraction for DWT is currently disabled
                     except Exception as e:
                         error_files.append(f"{csv_name} ({e})")
     if error_files:
