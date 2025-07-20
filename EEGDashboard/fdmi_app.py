@@ -39,7 +39,13 @@ def run_fdmi_app():
             processed_files = 0
             for class_folder in class_folders:
                 class_label = os.path.basename(class_folder)
-                csv_files = [f for f in z.namelist() if f.startswith(class_folder + '/') and f.lower().endswith('.csv')]
+                csv_files = [
+                    f for f in z.namelist()
+                    if f.startswith(class_folder + '/')
+                    and f.lower().endswith('.csv')
+                    and not f.startswith('__MACOSX/')
+                    and not os.path.basename(f).startswith('._')
+                ]
                 for csv_name in csv_files:
                     processed_files += 1
                     progress.progress(processed_files / total_files, text=f"Processing {csv_name} ({processed_files}/{total_files})")
