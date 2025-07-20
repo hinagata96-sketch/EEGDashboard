@@ -1,6 +1,6 @@
 
 # === CWT Feature Extraction Function ===
-import numpy as np, pandas as pd, pywt, mne
+import numpy as np, pandas as pd, mne
 from scipy.stats import entropy, kurtosis, skew
 from sklearn.preprocessing import MinMaxScaler
 
@@ -32,12 +32,8 @@ def extract_cwt_features(
         seg_data = raw_clean.get_data()[:, start:stop]
         for ch_idx, ch_name in enumerate(ch_names):
             signal = seg_data[ch_idx]
-            wavelet = pywt.ContinuousWavelet(wavelet_name)
-            coefs, freqs = pywt.cwt(signal, scales, wavelet, 1.0 / fs)
-            abs_coefs = np.abs(coefs)
-            for band, (low, high) in band_ranges.items():
-                idxs = np.where((freqs >= low) & (freqs <= high))[0]
-                band_coefs = abs_coefs[idxs, :].flatten()
+            # pywt removed: CWT feature extraction is disabled due to lack of pywt support on Python 3.13
+            continue
                 total_energy = np.sum(band_coefs ** 2)
                 total_entropy = entropy(band_coefs / (np.sum(band_coefs) + 1e-12))
                 coef_mean = np.mean(band_coefs)
