@@ -29,20 +29,26 @@ def run_fdmi_app():
     n_segments = st.number_input("Number of Segments", min_value=1, value=5)
 
     all_freq_features = []
+    error_files = []
 
     if uploaded_zip:
         with zipfile.ZipFile(uploaded_zip) as z:
             class_folders = set([os.path.dirname(f) for f in z.namelist() if f.lower().endswith('.csv')])
+            total_files = sum([len([f for f in z.namelist() if f.startswith(class_folder + '/') and f.lower().endswith('.csv')]) for class_folder in class_folders])
+            progress = st.progress(0, text="Processing files...")
+            processed_files = 0
             for class_folder in class_folders:
                 class_label = os.path.basename(class_folder)
                 csv_files = [f for f in z.namelist() if f.startswith(class_folder + '/') and f.lower().endswith('.csv')]
                 for csv_name in csv_files:
+                    processed_files += 1
+                    progress.progress(processed_files / total_files, text=f"Processing {csv_name} ({processed_files}/{total_files})")
                     with z.open(csv_name) as f:
                         try:
                             df = pd.read_csv(f)
-                        except UnicodeDecodeError:
-                            f.seek(0)
-                            df = pd.read_csv(f, encoding='latin1')
+                        except Exception as e:
+                            error_files.append(f"{csv_name}: {e}")
+                            continue
                         ch_names = df.columns.tolist()
                         data = df.values.T
                         total_samples = data.shape[1]
@@ -56,35 +62,42 @@ def run_fdmi_app():
                                 for band, (low, high) in band_ranges.items():
                                     if len(signal) <= 27:
                                         continue  # Skip segments that are too short
-                                    filtered = bandpass_filter(signal, low, high, fs)
-                                    bp, ent, cent, peak, meanf, medf = extract_freq_features(filtered, fs)
-                                    total_power = np.sum([
-                                        extract_freq_features(bandpass_filter(signal, l, h, fs), fs)[0]
-                                        for l, h in band_ranges.values() if len(signal) > 27
-                                    ])
-                                    rel_power = bp / total_power if total_power != 0 else 0
-                                    # Calculate band ratios
-                                    alpha_power = extract_freq_features(bandpass_filter(signal, band_ranges['alpha'][0], band_ranges['alpha'][1], fs), fs)[0] if len(signal) > 27 else 0
-                                    beta_power = extract_freq_features(bandpass_filter(signal, band_ranges['beta'][0], band_ranges['beta'][1], fs), fs)[0] if len(signal) > 27 else 0
-                                    theta_power = extract_freq_features(bandpass_filter(signal, band_ranges['theta'][0], band_ranges['theta'][1], fs), fs)[0] if len(signal) > 27 else 0
-                                    alpha_beta_ratio = alpha_power / beta_power if beta_power != 0 else 0
-                                    theta_beta_ratio = theta_power / beta_power if beta_power != 0 else 0
-                                    all_freq_features.append({
-                                        "file": csv_name,
-                                        "class": class_label,
-                                        "segment": seg_idx + 1,
-                                        "channel": ch_name,
-                                        "band": band,
-                                        "band_power": bp,
-                                        "relative_power": rel_power,
-                                        "alpha_beta_ratio": alpha_beta_ratio,
-                                        "theta_beta_ratio": theta_beta_ratio,
-                                        "spectral_entropy": ent,
-                                        "centroid": cent,
-                                        "peak_freq": peak,
-                                        "mean_freq": meanf,
-                                        "median_freq": medf
-                                    })
+                                    try:
+                                        filtered = bandpass_filter(signal, low, high, fs)
+                                        bp, ent, cent, peak, meanf, medf = extract_freq_features(filtered, fs)
+                                        total_power = np.sum([
+                                            extract_freq_features(bandpass_filter(signal, l, h, fs), fs)[0]
+                                            for l, h in band_ranges.values() if len(signal) > 27
+                                        ])
+                                        rel_power = bp / total_power if total_power != 0 else 0
+                                        # Calculate band ratios
+                                        alpha_power = extract_freq_features(bandpass_filter(signal, band_ranges['alpha'][0], band_ranges['alpha'][1], fs), fs)[0] if len(signal) > 27 else 0
+                                        beta_power = extract_freq_features(bandpass_filter(signal, band_ranges['beta'][0], band_ranges['beta'][1], fs), fs)[0] if len(signal) > 27 else 0
+                                        theta_power = extract_freq_features(bandpass_filter(signal, band_ranges['theta'][0], band_ranges['theta'][1], fs), fs)[0] if len(signal) > 27 else 0
+                                        alpha_beta_ratio = alpha_power / beta_power if beta_power != 0 else 0
+                                        theta_beta_ratio = theta_power / beta_power if beta_power != 0 else 0
+                                        all_freq_features.append({
+                                            "file": csv_name,
+                                            "class": class_label,
+                                            "segment": seg_idx + 1,
+                                            "channel": ch_name,
+                                            "band": band,
+                                            "band_power": bp,
+                                            "relative_power": rel_power,
+                                            "alpha_beta_ratio": alpha_beta_ratio,
+                                            "theta_beta_ratio": theta_beta_ratio,
+                                            "spectral_entropy": ent,
+                                            "centroid": cent,
+                                            "peak_freq": peak,
+                                            "mean_freq": meanf,
+                                            "median_freq": medf
+                                        })
+                                    except Exception as e:
+                                        error_files.append(f"{csv_name} segment {seg_idx+1} channel {ch_name} band {band}: {e}")
+                                        continue
+            progress.progress(1.0, text="Processing complete!")
+            if error_files:
+                st.error(f"Errors occurred in the following files/segments:\n" + "\n".join(error_files))
 
     selected_band = st.selectbox("Select Frequency Band", list(band_ranges.keys()))
     features_df = pd.DataFrame([f for f in all_freq_features if f["band"] == selected_band])
